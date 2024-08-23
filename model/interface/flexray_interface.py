@@ -13,11 +13,11 @@ class FlexRayInterface(ABC):
         pass
 
     @abstractmethod
-    def send_fr_message(self):
+    def send_fr(self):
         """发送FlexRay消息"""
         pass
 
     @abstractmethod
-    def receive_fr_message(self, channel, timeout=None):
+    def receive_fr(self, channel, timeout=None):
         """接收FlexRay消息"""
         pass

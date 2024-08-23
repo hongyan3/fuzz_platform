@@ -1,10 +1,13 @@
+import threading
 from model.device import TosunDevice
+from model.fuzzer.can_fuzz import CanFuzzer
 
 
 def start():
     ts = TosunDevice()
     ts.connect()
-    print(ts.receive(channel=0, timeout=1))
+    fuzzer = CanFuzzer(can_interface=ts)
+    fuzzer.random_fuzz()
 
 
 if __name__ == '__main__':
