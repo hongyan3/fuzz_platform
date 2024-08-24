@@ -1,3 +1,4 @@
+import itertools
 import random
 import time
 from sys import stdout
@@ -49,6 +50,16 @@ def get_random_data(min_length, max_length):
         data_byte = random.randint(BYTE_MIN, BYTE_MAX)
         data.append(data_byte)
     return data
+
+
+def apply_fuzzed_data(initial_data, fuzzed_data, bitmap):
+    fuzz_index = 0
+    fuzzed_data = fuzzed_data[::-1]
+    for index in range(0, len(initial_data)):
+        if bitmap[index]:
+            initial_data[index] = fuzzed_data[fuzz_index]
+            fuzz_index += 1
+    return initial_data
 
 
 class CanFuzzer:
@@ -125,4 +136,57 @@ class CanFuzzer:
 
     def bruteforce_fuzz(self, arb_id, initial_data, data_bitmap, filename=None, start_index=0, show_progress=True,
                         show_responses=True):
-        pass
+        if not 2 <= len(initial_data) <= 16:
+            raise ValueError("Invalid initial data: must be between 2 and 16 nibbles")
+        if not len(initial_data) % 2 == 0:
+            raise ValueError("Invalid initial data: must have an even length")
+        if not len(initial_data) == len(data_bitmap):
+            raise ValueError("Initial data ({0}) and data bitmap ({1}) must have the same length".format(
+                len(initial_data), len(data_bitmap)))
+
+        number_of_bruteforce = sum(data_bitmap)
+        end_index = 256 ** number_of_bruteforce
+
+        if not 0 <= start_index <= end_index:
+            raise ValueError("Invalid start index '{0}', current range is [0-{1}]".format(start_index, end_index))
+
+        # Initialize fuzzed nibble generator
+        bruteforce_values = range(0xFF + 1)
+        fuzz_data = itertools.product(bruteforce_values, repeat=number_of_bruteforce)
+
+        file_logging_enabled = filename is not None
+        output_file = None
+        output_data = []
+        try:
+            if file_logging_enabled:
+                output_file = open(filename, "a")
+            with self.__can_bus as bus:
+                if show_progress:
+                    print("Starting at index {0} of {1}\n".format(start_index, end_index))
+                message_count = 0
+                # Traverse all outputs from fuzz generator
+                for current_fuzzed_data in fuzz_data:
+                    # Skip handling until start_index is met
+                    if message_count < start_index:
+                        message_count += 1
+                        continue
+                    # Apply fuzzed data
+                    output_data = apply_fuzzed_data(initial_data, current_fuzzed_data, data_bitmap)
+                    # Send message
+                    bus.send(arb_id=arb_id, data=output_data)
+                    message_count += 1
+                    if show_progress:
+                        print("\rCurrent: {0} Index: {1}".format(list_to_hex_str(output_data, " "), message_count),
+                              end="")
+                        stdout.flush()
+                    # Log to file
+                    if file_logging_enabled:
+                        write_directive_to_file_handle(output_file, arb_id, output_data)
+                    time.sleep(DELAY_BETWEEN_MESSAGES)
+                if show_progress:
+                    print()
+        finally:
+            if output_file is not None:
+                output_file.close()
+        if show_progress:
+            print("Brute force finished")
