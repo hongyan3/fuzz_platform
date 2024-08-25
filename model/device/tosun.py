@@ -1,6 +1,7 @@
 from libTSCANAPI import *
 from model.interface import CanInterface, FlexRayInterface
 from ctypes import *
+import can
 
 PREFIX = '[TOSUN]'
 
@@ -14,6 +15,7 @@ class TosunDevice(CanInterface, FlexRayInterface):
         :param serial_number: 产品序列号，若电脑只连接一个设备可省略该参数
         :param chn1_baudrate: 波特率， 默认为500
         """
+        self.filters = None
         self.__bus = c_size_t(0)
         self.__chn1_baudrate = chn1_baudrate
         self.__chn2_baudrate = chn2_baudrate
@@ -51,7 +53,7 @@ class TosunDevice(CanInterface, FlexRayInterface):
         tsapp_disconnect_by_handle(self.__bus)
         finalize_lib_tscan()
 
-    def send(self, data, arb_id, is_extended=None, is_error=False, is_remote=False, is_fd=False, channel=0):
+    def send(self, arb_id, data, is_extended=None, is_error=False, is_remote=False, is_fd=False, channel=0):
         pro_bit = ['0'] * 8
         fd_pro_bit = ['0'] * 8
         pro_bit[0] = '1'  # 0: RX 1: TX
@@ -79,7 +81,7 @@ class TosunDevice(CanInterface, FlexRayInterface):
             print(f'Message send failed, msg: {msg.value.decode()}')
             return
 
-    def receive(self, channel=0, timeout=None):
+    def recv(self, channel=0, timeout=None):
         # start_time = time.time()
         # count = s32(0)
         # tsfifo_read_canfd_rx_buffer_frame_count(self.__bus, 0, count)
@@ -108,15 +110,27 @@ class TosunDevice(CanInterface, FlexRayInterface):
             tsfifo_receive_canfd_msgs(self.__bus, buffer, buff_size, channel, READ_TX_RX_DEF.ONLY_RX_MESSAGES)
             if buff_size.value > 0:
                 msg = buffer[0]
-                start_time = time.time()
                 msg_id = msg.FIdentifier
                 data = []
                 timestamp = msg.FTimeUs
                 for i in range(DLC_DATA_BYTE_CNT[msg.FDLC]):
                     data.append(msg.FData[i])
-                yield msg_id, data, timestamp
+                message = can.Message(
+                    arbitration_id=msg_id,
+                    data=data,
+                    timestamp=timestamp,
+                )
+                if self.filters is not None and len(self.filters) != 0:
+                    for f in self.filters:
+                        if (message.arbitration_id & f['can_mask']) == f['can_id']:
+                            return message
+                else:
+                    return message
             elif timeout is not None and time.time() - start_time > timeout:
-                break
+                return None
+
+    def set_filters(self, filters):
+        self.filters = filters
 
     def send_fr(self):
         pass
