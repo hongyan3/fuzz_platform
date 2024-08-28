@@ -1,5 +1,6 @@
 import itertools
 import random
+import sys
 import time
 from sys import stdout
 
@@ -9,7 +10,6 @@ from model.constants import *
 MIN_DATA_LENGTH = 1
 MAX_DATA_LENGTH = 8
 DEFAULT_SEED_MAX = 2 ** 16
-DELAY_BETWEEN_MESSAGES = 0.01
 
 
 def directive_str(arb_id, data):
@@ -29,6 +29,7 @@ def parse_directive(directive):
 def write_directive_to_file_handle(file_handle, arb_id, data):
     directive = directive_str(arb_id, data)
     file_handle.write("{0}\n".format(directive))
+    file_handle.flush()
 
 
 def set_seed(seed=None):
@@ -68,7 +69,7 @@ class CanFuzzer:
 
     def random_fuzz(self, static_arb_id=None, static_data=None, filename=None, min_id=ARBITRATION_ID_MIN,
                     max_id=ARBITRATION_ID_MAX, min_data_length=MIN_DATA_LENGTH, max_data_length=MAX_DATA_LENGTH,
-                    start_index=0, show_status=True, seed=None):
+                    start_index=0, show_status=True, seed=None, delay=0.01):
 
         if static_arb_id is not None and static_data is not None:
             raise ValueError("Both static arbitration ID and static data cannot be set at the same time")
@@ -103,30 +104,24 @@ class CanFuzzer:
                 while True:
                     # Set arbitration ID
                     if static_arb_id is None:
-                        # Use a random arbitration ID
                         arb_id = get_random_arb_id(min_id, max_id)
                     else:
-                        # Use the static arbitration ID
                         arb_id = static_arb_id
-                    # Set data
                     if static_data is None:
                         data = get_random_data(min_data_length, max_data_length)
                     else:
                         data = static_data
-                    # If start index is not reached yet, continue without sending and sleeping
                     if current_index < start_index:
                         current_index += 1
                         continue
                     if show_status:
                         print("\rMessages sent: {0}, index: {1}".format(messages_sent, current_index), end="")
                         stdout.flush()
-                    # Send message
                     self.__can_bus.send(data=data, arb_id=arb_id)
                     messages_sent += 1
-                    # Log to file
                     if file_logging_enabled:
                         write_directive_to_file_handle(output_file, arb_id, data)
-                    time.sleep(DELAY_BETWEEN_MESSAGES)
+                    time.sleep(delay)
                     current_index += 1
         except IOError as e:
             print("ERROR: {0}".format(e))
@@ -135,7 +130,7 @@ class CanFuzzer:
                 output_file.close()
 
     def bruteforce_fuzz(self, arb_id, initial_data, data_bitmap, filename=None, start_index=0, show_progress=True,
-                        show_responses=True):
+                        show_responses=True, delay=0.01):
         if not 2 <= len(initial_data) <= 16:
             raise ValueError("Invalid initial data: must be between 2 and 16 nibbles")
         if not len(initial_data) % 2 == 0:
@@ -182,7 +177,7 @@ class CanFuzzer:
                     # Log to file
                     if file_logging_enabled:
                         write_directive_to_file_handle(output_file, arb_id, output_data)
-                    time.sleep(DELAY_BETWEEN_MESSAGES)
+                    time.sleep(delay)
                 if show_progress:
                     print()
         finally:
@@ -190,3 +185,37 @@ class CanFuzzer:
                 output_file.close()
         if show_progress:
             print("Brute force finished")
+
+    def replay_from_file(self, file_name, delay=0.01):
+        """
+        从日志文件中读取报文并重放
+        :param file_name: 日志文件名
+        :param delay: 间隔
+        :return:
+        """
+        with open(file_name, "r") as f:
+            for line in f:
+                line = line[:len(line) - 2]
+                arb_id, data = parse_directive(line)
+                self.__can_bus.send(data=data, arb_id=arb_id)
+                print('Message replayed: arb_id: {}, data: {}'.format(hex(arb_id), [hex(i) for i in data]))
+                time.sleep(delay)
+
+    def get_arb_ids_set(self, duration):
+        arb_ids = set()
+        start = time.time()
+        with self.__can_bus as bus:
+            while True:
+                msg = bus.recv(timeout=0.5)
+                arb_ids.add(msg.arbitration_id)
+                print('\rMessage received: arb_id: {0}'.format(msg.arbitration_id),end="")
+                sys.stdout.flush()
+                if time.time() - start > duration:
+                    print()
+                    break
+        arb_ids = list(arb_ids)
+        arb_ids.sort()
+        arb_ids = [hex(i) for i in arb_ids]
+        print(len(arb_ids))
+        return arb_ids
+

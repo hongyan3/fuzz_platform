@@ -12,11 +12,10 @@ def start():
     ts = TosunDevice()
     ts.connect()
     fuzzer = CanFuzzer(can_interface=ts)
-    fuzzer.random_fuzz(seed=14792, filename='./test.log')
-    # uds = UDS(can_interface=ts)
-    # print(uds.
-    #       uds_discovery(min_id=0x000, max_id=0x7FF, blacklist_args=None, auto_blacklist_duration=0.1, delay=0.1,
-    #                     verify=True))
+    # fuzzer.random_fuzz(seed=14792, filename='./test.log', start_index=2400, delay=1)
+    # fuzzer.replay_from_file(file_name='test.log', delay=2)
+    print(fuzzer.get_arb_ids_set(60))
+
 
 if __name__ == '__main__':
     start()
