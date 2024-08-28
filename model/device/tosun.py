@@ -82,27 +82,6 @@ class TosunDevice(CanInterface, FlexRayInterface):
             return
 
     def recv(self, channel=0, timeout=None):
-        # start_time = time.time()
-        # count = s32(0)
-        # tsfifo_read_canfd_rx_buffer_frame_count(self.__bus, 0, count)
-        # print(count)
-        # while True:
-        #     buffer = (TLIBCANFD * 1)()
-        #     buff_size = s32(1)
-        #     tsfifo_receive_canfd_msgs(self.__bus, buffer, buff_size, channel, READ_TX_RX_DEF.ONLY_RX_MESSAGES)
-        #     msg = buffer[0]
-        #     if buff_size.value > 0 and msg.FIdentifier > 0:
-        #         break
-        #     if timeout is not None:
-        #         if time.time() - start_time > timeout:
-        #             raise TimeoutError
-        # msg_id = msg.FIdentifier
-        # data = []
-        # timestamp = msg.FTimeUs
-        # for i in range(DLC_DATA_BYTE_CNT[msg.FDLC]):
-        #     data.append(msg.FData[i])
-        # return msg_id, data, timestamp
-
         start_time = time.time()
         while True:
             buffer = (TLIBCANFD * 1)()
@@ -132,27 +111,13 @@ class TosunDevice(CanInterface, FlexRayInterface):
     def set_filters(self, filters):
         self.filters = filters
 
+    def clear_filters(self):
+        self.filters = None
+
     def send_fr(self):
         pass
 
     def receive_fr(self, channel, timeout=None):
-        # start_time = time.time()
-        # while True:
-        #     buffer = (TLIBFlexray * 1)()
-        #     buff_size = s32(1)
-        #     tsfifo_receive_flexray_msgs(self.__bus, buffer, buff_size, channel, READ_TX_RX_DEF.TX_RX_MESSAGES)
-        #     msg = buffer[0]
-        #     if buff_size.value > 0 and msg.FSlotId > 0:
-        #         break
-        #     if timeout is not None:
-        #         if time.time() - start_time > timeout:
-        #             raise TimeoutError
-        # msg_id = msg.FSlotId
-        # data = []
-        # timestamp = msg.FTimeUs
-        # for i in msg.FData:
-        #     data.append(i)
-        # return msg_id, data, timestamp
         start_time = time.time()
         while True:
             buffer = (TLIBFlexray * 1)()

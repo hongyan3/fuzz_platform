@@ -1,6 +1,8 @@
 import sys
+import time
 
-from model.utils.iso14229_1 import Iso14229_1, NegativeResponseCodes, Constants
+from model.constants import ARBITRATION_ID_MIN, ARBITRATION_ID_MAX_EXTENDED, ARBITRATION_ID_MAX
+from model.utils.iso14229_1 import Iso14229_1, NegativeResponseCodes, Constants, Services
 from model.utils.iso15765_2 import IsoTp
 
 UDS_SERVICE_NAMES = {
@@ -116,9 +118,175 @@ def print_negative_response_code(nrc):
     print(f"Negative Response Code (NRC): {hex(nrc)} - {nrc_name}")
 
 
+def auto_blacklist(bus, duration, classifier_function, print_results):
+    if print_results:
+        print("Scanning for arbitration IDs to blacklist")
+    blacklist = set()
+    start_time = time.time()
+    end_time = start_time + duration
+    while time.time() < end_time:
+        if print_results:
+            time_left = end_time - time.time()
+            num_matches = len(blacklist)
+            print("\r{0:> 5.1f} seconds left, {1} found".format(time_left, num_matches), end="")
+            sys.stdout.flush()
+        # Receive message
+        msg = bus.recv(timeout=0.1)
+        if msg is None:
+            continue
+        # Classify
+        if classifier_function(msg):
+            # Add to blacklist
+            blacklist.add(msg.arbitration_id)
+    if print_results:
+        num_matches = len(blacklist)
+        print("\r  0.0 seconds left, {0} found".format(num_matches), end="")
+        if len(blacklist) > 0:
+            print("\n  Detected IDs: {0}".format(" ".join(sorted(list(map(hex, blacklist))))))
+        else:
+            print()
+    return blacklist
+
+
 class UDS:
     def __init__(self, can_interface):
         self.bus = can_interface
+
+    def uds_discovery(self, min_id=ARBITRATION_ID_MIN, max_id=ARBITRATION_ID_MAX, blacklist_args=None,
+                      auto_blacklist_duration=None, delay=1, verify=True, print_results=True):
+        # Set defaults
+        if blacklist_args is None:
+            blacklist_args = []
+        if min_id is None:
+            min_id = ARBITRATION_ID_MIN
+        if max_id is None:
+            if min_id <= ARBITRATION_ID_MAX:
+                max_id = ARBITRATION_ID_MAX
+            else:
+                # If min_id is extended, use an extended default max_id as well
+                max_id = ARBITRATION_ID_MAX_EXTENDED
+        if auto_blacklist_duration is None:
+            auto_blacklist_duration = 0
+        if blacklist_args is None:
+            blacklist_args = []
+
+        # Sanity checks
+        if max_id < min_id:
+            raise ValueError("max_id must not be smaller than min_id -"
+                             " got min:0x{0:x}, max:0x{1:x}".format(min_id, max_id))
+        if auto_blacklist_duration < 0:
+            raise ValueError("auto_blacklist_duration must not be smaller "
+                             "than 0, got {0}".format(auto_blacklist_duration))
+
+        diagnostic_session_control = Services.DiagnosticSessionControl
+        service_id = diagnostic_session_control.service_id
+        sub_function = diagnostic_session_control.DiagnosticSessionType.DEFAULT_SESSION
+        session_control_data = [service_id, sub_function]
+
+        valid_session_control_responses = [0x50, 0x7F]
+
+        def is_valid_response(message):
+            return (len(message.data) >= 2 and
+                    message.data[1] in valid_session_control_responses)
+
+        found_arbitration_ids = []
+
+        with IsoTp(None, None, self.bus) as tp:
+            blacklist = set(blacklist_args)
+            # Perform automatic blacklist scan
+            if auto_blacklist_duration > 0:
+                auto_bl_arb_ids = auto_blacklist(tp.bus,
+                                                 auto_blacklist_duration,
+                                                 is_valid_response,
+                                                 print_results)
+                blacklist |= auto_bl_arb_ids
+
+            # Prepare session control frame
+            sess_ctrl_frm = tp.get_frames_from_message(session_control_data)
+            send_arb_id = min_id - 1
+            while send_arb_id < max_id:
+                send_arb_id += 1
+                if print_results:
+                    print("\rSending Diagnostic Session Control to 0x{0:04x}"
+                          .format(send_arb_id), end="")
+                    sys.stdout.flush()
+                # Send Diagnostic Session Control
+                tp.transmit(sess_ctrl_frm, send_arb_id, None)
+                end_time = time.time() + delay
+                # Listen for response
+                while time.time() < end_time:
+                    msg = tp.bus.recv(0)
+                    if msg is None:
+                        # No response received
+                        continue
+                    if msg.arbitration_id in blacklist:
+                        # Ignore blacklisted arbitration IDs
+                        continue
+                    if is_valid_response(msg):
+                        # Valid response
+                        if verify:
+                            # Verification - backtrack the latest IDs and
+                            # verify that the same response is received
+                            verified = False
+                            # Set filter to only receive messages for the
+                            # arbitration ID being verified
+                            tp.set_filter_single_arbitration_id(msg.arbitration_id)
+                            if print_results:
+                                print("\n  Verifying potential response from "
+                                      "0x{0:04x}".format(send_arb_id))
+                            verify_id_range = range(send_arb_id,
+                                                    send_arb_id - VERIFICATION_BACKTRACK,
+                                                    -1)
+                            for verify_arb_id in verify_id_range:
+                                if print_results:
+                                    print("    Resending 0x{0:0x}... "
+                                          .format(verify_arb_id), end=" ")
+                                tp.transmit(sess_ctrl_frm,
+                                            verify_arb_id,
+                                            None)
+                                verification_end_time = (time.time()
+                                                         + delay
+                                                         + VERIFICATION_EXTRA_DELAY)
+                                while time.time() < verification_end_time:
+                                    verification_msg = tp.bus.recv(0)
+                                    if verification_msg is None:
+                                        continue
+                                    if is_valid_response(verification_msg):
+                                        # Verified
+                                        verified = True
+                                        send_arb_id = verify_arb_id
+                                        break
+                                if print_results:
+                                    # Print result
+                                    if verified:
+                                        print("Success")
+                                    else:
+                                        print("No response")
+                                if verified:
+                                    # Verification succeeded - stop checking
+                                    break
+                            # Remove filter after verification
+                            tp.clear_filters()
+                            if not verified:
+                                # Verification failed - move on
+                                if print_results:
+                                    print("  False match - skipping")
+                                continue
+                        if print_results:
+                            if not verify:
+                                # Blank line needed
+                                print()
+                            print("Found diagnostics server "
+                                  "listening at 0x{0:04x}, "
+                                  "response at 0x{1:04x}"
+                                  .format(send_arb_id, msg.arbitration_id))
+                        # Add found arbitration ID pair
+                        found_arb_id_pair = (send_arb_id,
+                                             msg.arbitration_id)
+                        found_arbitration_ids.append(found_arb_id_pair)
+            if print_results:
+                print()
+        return found_arbitration_ids
 
     def service_discovery(self, arb_id_request, arb_id_response, timeout,
                           min_id=BYTE_MIN, max_id=BYTE_MAX, print_results=True):

@@ -37,3 +37,10 @@ class CanInterface(ABC):
         :return:
         """
         pass
+
+    def clear_filters(self):
+        """
+        清除过滤器
+        :return:
+        """
+        pass
