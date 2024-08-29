@@ -1,7 +1,7 @@
-from model.constants import ARBITRATION_ID_MAX_EXTENDED, ARBITRATION_ID_MAX
-import can
 import datetime
 import time
+
+from model.constants import ARBITRATION_ID_MAX_EXTENDED, ARBITRATION_ID_MAX
 
 
 class IsoTp:

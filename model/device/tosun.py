@@ -1,7 +1,9 @@
-from libTSCANAPI import *
-from model.interface import CanInterface, FlexRayInterface
 from ctypes import *
+
 import can
+from libTSCANAPI import *
+
+from model.interface import CanInterface, FlexRayInterface
 
 PREFIX = '[TOSUN]'
 

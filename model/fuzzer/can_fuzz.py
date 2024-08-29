@@ -4,8 +4,8 @@ import sys
 import time
 from sys import stdout
 
-from model.utils.common import *
 from model.constants import *
+from model.utils.common import *
 
 MIN_DATA_LENGTH = 1
 MAX_DATA_LENGTH = 8
