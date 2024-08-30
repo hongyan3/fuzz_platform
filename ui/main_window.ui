@@ -129,7 +129,7 @@
               </rect>
              </property>
              <property name="currentIndex">
-              <number>1</number>
+              <number>0</number>
              </property>
              <widget class="QWidget" name="b_fuzz_operation_page">
               <widget class="QWidget" name="layoutWidget_2">
@@ -138,36 +138,10 @@
                  <x>10</x>
                  <y>10</y>
                  <width>281</width>
-                 <height>151</height>
+                 <height>155</height>
                 </rect>
                </property>
-               <layout class="QGridLayout" name="gridLayout_2" columnstretch="3,7">
-                <item row="0" column="1">
-                 <widget class="QLineEdit" name="fixed_arb_id"/>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QLineEdit" name="initial_data"/>
-                </item>
-                <item row="3" column="1">
-                 <widget class="QLineEdit" name="brute_start_index"/>
-                </item>
-                <item row="0" column="0">
-                 <widget class="QLabel" name="label_3">
-                  <property name="text">
-                   <string>固定ID</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="2" column="1">
-                 <widget class="QLineEdit" name="fuzz_bit_map"/>
-                </item>
-                <item row="4" column="0">
-                 <widget class="QLabel" name="label_9">
-                  <property name="text">
-                   <string>间隔(ms)</string>
-                  </property>
-                 </widget>
-                </item>
+               <layout class="QGridLayout" name="gridLayout_2" columnstretch="3,0">
                 <item row="3" column="0">
                  <widget class="QLabel" name="label_11">
                   <property name="text">
@@ -175,19 +149,8 @@
                   </property>
                  </widget>
                 </item>
-                <item row="2" column="0">
-                 <widget class="QLabel" name="label_5">
-                  <property name="text">
-                   <string>模糊位</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="0">
-                 <widget class="QLabel" name="label_4">
-                  <property name="text">
-                   <string>初始Data</string>
-                  </property>
-                 </widget>
+                <item row="2" column="1">
+                 <widget class="QLineEdit" name="fuzz_bit_map"/>
                 </item>
                 <item row="4" column="1">
                  <widget class="QSpinBox" name="brute_delay">
@@ -199,7 +162,63 @@
                   </property>
                  </widget>
                 </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_4">
+                  <property name="text">
+                   <string>初始Data</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="label_3">
+                  <property name="text">
+                   <string>固定ID</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QLineEdit" name="fixed_arb_id"/>
+                </item>
+                <item row="2" column="0">
+                 <widget class="QLabel" name="label_5">
+                  <property name="text">
+                   <string>模糊位</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLineEdit" name="initial_data"/>
+                </item>
+                <item row="4" column="0">
+                 <widget class="QLabel" name="label_9">
+                  <property name="text">
+                   <string>间隔(ms)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="1">
+                 <widget class="QLineEdit" name="brute_start_index"/>
+                </item>
                </layout>
+              </widget>
+              <widget class="QProgressBar" name="brute_process">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="geometry">
+                <rect>
+                 <x>10</x>
+                 <y>190</y>
+                 <width>291</width>
+                 <height>23</height>
+                </rect>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+               <property name="invertedAppearance">
+                <bool>false</bool>
+               </property>
               </widget>
              </widget>
              <widget class="QWidget" name="a_fuzz_operation_page_2">
@@ -501,6 +520,22 @@
     <hint type="destinationlabel">
      <x>264</x>
      <y>138</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>can_fuzz_start</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>brute_process</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>122</x>
+     <y>511</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>136</x>
+     <y>375</y>
     </hint>
    </hints>
   </connection>

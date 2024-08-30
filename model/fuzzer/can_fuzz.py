@@ -131,7 +131,7 @@ class CanFuzzer:
 
     def bruteforce_fuzz(self, arb_id, initial_data, data_bitmap, filename=None, start_index=0, show_progress=True,
                         show_responses=True, delay=0.01):
-        if not 2 <= len(initial_data) <= 16:
+        if not 2 <= len(initial_data) <= 8:
             raise ValueError("Invalid initial data: must be between 2 and 16 nibbles")
         if not len(initial_data) % 2 == 0:
             raise ValueError("Invalid initial data: must have an even length")

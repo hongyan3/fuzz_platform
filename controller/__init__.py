@@ -1,3 +1,3 @@
-from .task import CanRandomFuzzTask
+from .task import TaskCanFuzzRandom
 
-__all__ = ['CanRandomFuzzTask']
+__all__ = ['TaskCanFuzzRandom']

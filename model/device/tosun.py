@@ -1,6 +1,3 @@
-from ctypes import *
-
-import can
 from libTSCANAPI import *
 
 from model.interface import CanInterface, FlexRayInterface
@@ -26,6 +23,7 @@ class TosunDevice(CanInterface, FlexRayInterface):
         else:
             self.__device_code = b''
         initialize_lib_tscan(True, True, False)
+        self.connect()
 
     def __enter__(self):
         return self
