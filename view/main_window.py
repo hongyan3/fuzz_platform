@@ -1,9 +1,11 @@
 import sys
 
+from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QTextCursor, QIcon
 from PyQt6.QtWidgets import QMainWindow, QTextBrowser, QMessageBox
 
 from controller import TaskCanFuzzRandom
+from controller.task import TaskCanFuzzRandomParams
 from ui import UI_MainWindow
 
 
@@ -27,14 +29,18 @@ class MainWindow(QMainWindow, UI_MainWindow):
         super().__init__()
         self.setupUi(self)
         # 线程任务初始化
-        self.task_can_fuzz_random = TaskCanFuzzRandom()
-        self.task_can_fuzz_random.signal_finished.connect(self.on_can_fuzz_task)
+        self.task_can_fuzz_random = TaskCanFuzzRandom(None)
+        self.task_can_fuzz_random.signal_finished.connect(self.on_can_fuzz_task_finished)
         # 插槽初始化
         self.can_fuzz_start.clicked.connect(self.on_button_clicked)
         self.clear_console.clicked.connect(self.on_clear_console_clicked)
         self.task_can_fuzz_random.signal_process.connect(self.on_brute_process_update)
         # 组件初始化
         self.device_select.addItem('同星')
+        self.fixed_arb_id.setText('123')
+        self.initial_data.setText('0,0,0,0,0,0,0,0')
+        self.fuzz_bit_map.setText('1,1,1,1,1,1,1,1')
+        self.brute_start_index.setText('0')
         self.brute_process.setVisible(False)
         # 重定向控制台输出到TextBrowser
         sys.stdout = RedirectStream(self.console_browser)
@@ -70,18 +76,21 @@ class MainWindow(QMainWindow, UI_MainWindow):
                 try:
                     arb_id = int(self.fixed_arb_id.text())
                     data = [int(i) for i in self.initial_data.text().split(',')]
-                    bit_map = [i == 'True' for i in self.fuzz_bit_map.text().split(',')]
+                    bit_map = [i == '1' for i in self.fuzz_bit_map.text().split(',')]
                     index = int(self.brute_start_index.text())
                     delay = int(self.brute_delay.text()) / 1000
                 except Exception as e:
                     print('参数有误，请检查 error: {}'.format(e))
                     set_finished()
                     return
-                self.task_can_fuzz_random.Params.arb_id = arb_id
-                self.task_can_fuzz_random.Params.data = data
-                self.task_can_fuzz_random.Params.bit_map = bit_map
-                self.task_can_fuzz_random.Params.index = index
-                self.task_can_fuzz_random.Params.delay = delay
+                params = TaskCanFuzzRandomParams(
+                    arb_id=arb_id,
+                    data=data,
+                    bit_map=bit_map,
+                    index=index,
+                    delay=delay
+                )
+                self.task_can_fuzz_random.params = params
                 self.task_can_fuzz_random.start()
             elif mode == 1:
                 print('随机Fuzz')
@@ -92,9 +101,10 @@ class MainWindow(QMainWindow, UI_MainWindow):
     def on_clear_console_clicked(self):
         self.console_browser.clear()
 
-    def on_can_fuzz_task(self, finished):
+    def on_can_fuzz_task_finished(self, finished):
         if finished:
-            finished()
+            self.can_fuzz_start.setText('开始')
+            self.brute_process.setVisible(False)
 
     def on_brute_process_update(self, process):
         self.brute_process.setValue(process)

@@ -46,8 +46,7 @@ class TosunDevice(CanInterface, FlexRayInterface):
             print(f'{PREFIX} Device is already connected.')
         else:
             msg = self.__get_error_description(code)
-            print(f'{PREFIX} Device connection failed, error code: {code}, msg: {msg.value.decode()}')
-            exit(-1)
+            raise IOError('device connect failed.')
 
     def close(self):
         tsapp_disconnect_by_handle(self.__bus)
