@@ -13,7 +13,8 @@ class UI_MainWindow(object):
     def setupUi(self, UI_MainWindow):
         UI_MainWindow.setObjectName("UI_MainWindow")
         UI_MainWindow.resize(955, 628)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
+                                           QtWidgets.QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(UI_MainWindow.sizePolicy().hasHeightForWidth())
@@ -23,7 +24,8 @@ class UI_MainWindow(object):
         UI_MainWindow.setWindowIcon(icon)
         UI_MainWindow.setDocumentMode(False)
         self.centralwidget = QtWidgets.QWidget(parent=UI_MainWindow)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
+                                           QtWidgets.QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
@@ -34,7 +36,8 @@ class UI_MainWindow(object):
         self.tabWidget = QtWidgets.QTabWidget(parent=self.centralwidget)
         self.tabWidget.setObjectName("tabWidget")
         self.tab = QtWidgets.QWidget()
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
+                                           QtWidgets.QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.tab.sizePolicy().hasHeightForWidth())
@@ -207,7 +210,8 @@ class UI_MainWindow(object):
         self.can_fuzz_start = QtWidgets.QPushButton(parent=self.layoutWidget2)
         self.can_fuzz_start.setObjectName("can_fuzz_start")
         self.horizontalLayout_3.addWidget(self.can_fuzz_start)
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding,
+                                           QtWidgets.QSizePolicy.Policy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem)
         self.clear_console = QtWidgets.QPushButton(parent=self.layoutWidget2)
         self.clear_console.setObjectName("clear_console")
@@ -255,10 +259,10 @@ class UI_MainWindow(object):
         self.retranslateUi(UI_MainWindow)
         self.tabWidget.setCurrentIndex(0)
         self.stackedWidget.setCurrentIndex(0)
-        self.quit.triggered.connect(UI_MainWindow.close) # type: ignore
-        self.fuzz_select.activated['int'].connect(self.stackedWidget.setCurrentIndex) # type: ignore
-        self.stackedWidget.currentChanged['int'].connect(self.fuzz_select.setCurrentIndex) # type: ignore
-        self.can_fuzz_start.clicked['bool'].connect(self.brute_process.setEnabled) # type: ignore
+        self.quit.triggered.connect(UI_MainWindow.close)  # type: ignore
+        self.fuzz_select.activated['int'].connect(self.stackedWidget.setCurrentIndex)  # type: ignore
+        self.stackedWidget.currentChanged['int'].connect(self.fuzz_select.setCurrentIndex)  # type: ignore
+        self.can_fuzz_start.clicked['bool'].connect(self.brute_process.setEnabled)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(UI_MainWindow)
 
     def retranslateUi(self, UI_MainWindow):

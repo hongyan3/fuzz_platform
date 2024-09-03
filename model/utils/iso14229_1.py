@@ -113,7 +113,6 @@ class Services(object):
        parameters and functions"""
 
     class DiagnosticSessionControl(BaseService):
-
         service_id = ServiceID.DIAGNOSTIC_SESSION_CONTROL
 
         class DiagnosticSessionType(object):
@@ -132,7 +131,6 @@ class Services(object):
             # 0x7F ISO SAE Reserved
 
     class EcuReset(BaseService):
-
         service_id = ServiceID.ECU_RESET
 
         class ResetType(object):
@@ -148,7 +146,6 @@ class Services(object):
             # 0x7F ISO SAE Reserved
 
     class SecurityAccess(BaseService):
-
         service_id = ServiceID.SECURITY_ACCESS
 
         class RequestSeedOrSendKey(object):
@@ -205,7 +202,6 @@ class Services(object):
                 return seed + 1
 
     class TesterPresent(BaseService):
-
         service_id = ServiceID.TESTER_PRESENT
 
 
@@ -287,7 +283,7 @@ class Iso14229_1(object):
             response = self.tp.indication(wait_window)
             if response is not None and len(response) >= 3:
                 if (response[0] == Constants.NR_SI and
-                   response[2] == NegativeResponseCodes.REQUEST_CORRECTLY_RECEIVED_RESPONSE_PENDING):
+                        response[2] == NegativeResponseCodes.REQUEST_CORRECTLY_RECEIVED_RESPONSE_PENDING):
                     continue
             break
         return response
@@ -302,8 +298,8 @@ class Iso14229_1(object):
                  True otherwise
         """
         if (response is not None and
-           len(response) > 0 and
-           response[0] != Constants.NR_SI):
+                len(response) > 0 and
+                response[0] != Constants.NR_SI):
             return True
         return False
 
@@ -452,8 +448,8 @@ class Iso14229_1(object):
                  None otherwise
         """
         if (identifier is None or
-           sub_function is None or
-           sub_function_arg is None):
+                sub_function is None or
+                sub_function_arg is None):
             return None
 
         request = [0] * (1 + 1 + 2 + len(sub_function_arg) * 4)
@@ -562,8 +558,8 @@ class Iso14229_1(object):
                  None otherwise
         """
         if (transmission_mode is None or
-           identifier is None or
-           len(identifier) == 0):
+                identifier is None or
+                len(identifier) == 0):
             return None
 
         request = [0] * (2 + len(identifier))

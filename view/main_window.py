@@ -1,11 +1,12 @@
 import sys
+from ctypes import c_int32
 
-from PyQt6.QtCore import pyqtSlot
-from PyQt6.QtGui import QTextCursor, QIcon
+from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import QMainWindow, QTextBrowser, QMessageBox
+from libTSCANAPI import tscan_scan_devices
 
-from controller import TaskCanFuzzRandom
-from controller.task import TaskCanFuzzRandomParams
+from controller import TaskCanFuzzBruteforce
+from controller.task import TaskCanFuzzBruteforceParams
 from ui import UI_MainWindow
 
 
@@ -29,7 +30,7 @@ class MainWindow(QMainWindow, UI_MainWindow):
         super().__init__()
         self.setupUi(self)
         # 线程任务初始化
-        self.task_can_fuzz_random = TaskCanFuzzRandom(None)
+        self.task_can_fuzz_random = TaskCanFuzzBruteforce(None)
         self.task_can_fuzz_random.signal_finished.connect(self.on_can_fuzz_task_finished)
         # 插槽初始化
         self.can_fuzz_start.clicked.connect(self.on_button_clicked)
@@ -59,6 +60,11 @@ class MainWindow(QMainWindow, UI_MainWindow):
             res = None
         return res
 
+    def show_message(self, msg):
+        QMessageBox.question(
+            self, '提示', msg,
+            QMessageBox.StandardButton.Yes)
+
     def on_button_clicked(self):
         def set_finished():
             self.can_fuzz_start.setText('开始')
@@ -70,6 +76,11 @@ class MainWindow(QMainWindow, UI_MainWindow):
 
         text = self.can_fuzz_start.text()
         if text == '开始':
+            ACount = c_int32(0)
+            tscan_scan_devices(ACount)
+            if ACount.value == 0:
+                self.show_message('未发现设备连接')
+                return
             set_start()
             mode = self.fuzz_select.currentIndex()
             if mode == 0:
@@ -83,7 +94,7 @@ class MainWindow(QMainWindow, UI_MainWindow):
                     print('参数有误，请检查 error: {}'.format(e))
                     set_finished()
                     return
-                params = TaskCanFuzzRandomParams(
+                params = TaskCanFuzzBruteforceParams(
                     arb_id=arb_id,
                     data=data,
                     bit_map=bit_map,
@@ -96,6 +107,7 @@ class MainWindow(QMainWindow, UI_MainWindow):
                 print('随机Fuzz')
         else:
             self.task_can_fuzz_random.running = False
+            self.task_can_fuzz_random.requestInterruption()
             set_finished()
 
     def on_clear_console_clicked(self):

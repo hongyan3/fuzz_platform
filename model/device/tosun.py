@@ -80,7 +80,7 @@ class TosunDevice(CanInterface, FlexRayInterface):
             print(f'Message send failed, msg: {msg.value.decode()}')
             return
 
-    def recv(self, channel=0, timeout=None):
+    def recv(self, timeout=None, channel=0):
         start_time = time.time()
         while True:
             buffer = (TLIBCANFD * 1)()

@@ -208,7 +208,7 @@ class CanFuzzer:
             while True:
                 msg = bus.recv(timeout=0.5)
                 arb_ids.add(msg.arbitration_id)
-                print('\rMessage received: arb_id: {0}'.format(msg.arbitration_id),end="")
+                print('\rMessage received: arb_id: {0}'.format(msg.arbitration_id), end="")
                 sys.stdout.flush()
                 if time.time() - start > duration:
                     print()
@@ -218,4 +218,3 @@ class CanFuzzer:
         arb_ids = [hex(i) for i in arb_ids]
         print(len(arb_ids))
         return arb_ids
-
