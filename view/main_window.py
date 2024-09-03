@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import QMainWindow, QTextBrowser, QMessageBox
 from libTSCANAPI import tscan_scan_devices
 
 from controller import TaskCanFuzzBruteforce
-from controller.task import TaskCanFuzzBruteforceParams
+from controller.task import TaskCanFuzzBruteforceParams, TaskCanFuzzRandom, TaskCanFuzzRandomParams
 from ui import UI_MainWindow
 
 
@@ -30,18 +30,24 @@ class MainWindow(QMainWindow, UI_MainWindow):
         super().__init__()
         self.setupUi(self)
         # 线程任务初始化
-        self.task_can_fuzz_random = TaskCanFuzzBruteforce(None)
+        self.task_can_fuzz_bruteforce = TaskCanFuzzBruteforce(None)
+        self.task_can_fuzz_bruteforce.signal_finished.connect(self.on_can_fuzz_task_finished)
+        self.task_can_fuzz_random = TaskCanFuzzRandom(None)
         self.task_can_fuzz_random.signal_finished.connect(self.on_can_fuzz_task_finished)
         # 插槽初始化
         self.can_fuzz_start.clicked.connect(self.on_button_clicked)
         self.clear_console.clicked.connect(self.on_clear_console_clicked)
-        self.task_can_fuzz_random.signal_process.connect(self.on_brute_process_update)
+        self.task_can_fuzz_bruteforce.signal_process.connect(self.on_brute_process_update)
         # 组件初始化
         self.device_select.addItem('同星')
         self.fixed_arb_id.setText('123')
         self.initial_data.setText('0,0,0,0,0,0,0,0')
         self.fuzz_bit_map.setText('1,1,1,1,1,1,1,1')
         self.brute_start_index.setText('0')
+
+        self.random_min_id.setText('0')
+        self.random_max_id.setText('7FF')
+        self.random_start_index.setText('0')
         self.brute_process.setVisible(False)
         # 重定向控制台输出到TextBrowser
         sys.stdout = RedirectStream(self.console_browser)
@@ -76,9 +82,9 @@ class MainWindow(QMainWindow, UI_MainWindow):
 
         text = self.can_fuzz_start.text()
         if text == '开始':
-            ACount = c_int32(0)
-            tscan_scan_devices(ACount)
-            if ACount.value == 0:
+            dev_cnt = c_int32(0)
+            tscan_scan_devices(dev_cnt)
+            if dev_cnt.value == 0:
                 self.show_message('未发现设备连接')
                 return
             set_start()
@@ -101,12 +107,39 @@ class MainWindow(QMainWindow, UI_MainWindow):
                     index=index,
                     delay=delay
                 )
+                self.task_can_fuzz_bruteforce.params = params
+                self.task_can_fuzz_bruteforce.start()
+            elif mode == 1:
+                try:
+                    static_arb_id = None if self.static_arb_id.text() == '' else int(self.static_arb_id.text())
+                    static_data = None if self.static_data.text() == '' else [int(i) for i in self.initial_data.text().split(',')]
+                    min_arb_id = None if self.random_min_id.text() == '' else int(self.random_min_id.text(), 16)
+                    max_arb_id = None if self.random_max_id.text() == '' else int(self.random_max_id.text(), 16)
+                    min_data_len = None if self.data_min_length.text() == '' else int(self.data_min_length.text())
+                    max_data_len = None if self.data_max_length.text() == '' else int(self.data_max_length.text())
+                    seed = None if self.seed.text() == '' else int(self.seed.text())
+                    index = None if self.random_start_index.text() == '' else int(self.random_start_index.text())
+                    delay = None if self.random_delay.text() == '' else int(self.random_delay.text()) / 1000
+                except Exception as e:
+                    print('参数有误，请检查 error: {}'.format(e))
+                    set_finished()
+                    return
+                params = TaskCanFuzzRandomParams(
+                    static_arb_id=static_arb_id,
+                    static_data=static_data,
+                    min_arb_id=min_arb_id,
+                    max_arb_id=max_arb_id,
+                    min_data_len=min_data_len,
+                    max_data_len=max_data_len,
+                    seed=seed,
+                    index=index,
+                    delay=delay
+                )
                 self.task_can_fuzz_random.params = params
                 self.task_can_fuzz_random.start()
-            elif mode == 1:
-                print('随机Fuzz')
         else:
-            self.task_can_fuzz_random.running = False
+            self.task_can_fuzz_bruteforce.running = False
+            self.task_can_fuzz_bruteforce.requestInterruption()
             self.task_can_fuzz_random.requestInterruption()
             set_finished()
 
