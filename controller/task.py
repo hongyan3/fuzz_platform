@@ -136,9 +136,10 @@ class TaskCanFuzzRandom(QThread):
                 current_index = 0
                 messages_sent = 0
                 if self.params.index is not None:
-                    print("Starting at index {0}\n".format(self.params.index))
+                    print("Starting at index {0}".format(self.params.index))
                 while True:
                     if self.isInterruptionRequested():
+                        print('random fuzz stopped.')
                         break
                     if self.params.static_arb_id is None:
                         arb_id = get_random_arb_id(self.params.min_arb_id, self.params.max_arb_id)

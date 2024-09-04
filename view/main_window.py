@@ -1,6 +1,7 @@
 import sys
 from ctypes import c_int32
 
+from PyQt6.QtCore import QTimer, QObject, pyqtSignal
 from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import QMainWindow, QTextBrowser, QMessageBox
 from libTSCANAPI import tscan_scan_devices
@@ -10,19 +11,31 @@ from controller.task import TaskCanFuzzBruteforceParams, TaskCanFuzzRandom, Task
 from ui import UI_MainWindow
 
 
-class RedirectStream:
-    widget: QTextBrowser
+class RedirectStream(QObject):
+    text_written = pyqtSignal(str)
 
     def __init__(self, widget):
+        super().__init__()
         self.widget = widget
+        self.buffer = ""
+        # 定时器批量更新缓存的文本
+        self.flush_timer = QTimer()
+        self.flush_timer.timeout.connect(self.flush_buffer)
+        self.flush_timer.start(200)  # 每100ms刷新一次
 
     def write(self, text):
-        self.widget.moveCursor(QTextCursor.MoveOperation.End)
-        self.widget.insertPlainText(text)
-        self.widget.ensureCursorVisible()
+        self.buffer += text
+        self.text_written.emit(text)  # 可以选择性地触发信号，用于调试
 
     def flush(self):
         pass
+
+    def flush_buffer(self):
+        if self.buffer:
+            self.widget.moveCursor(QTextCursor.MoveOperation.End)
+            self.widget.insertPlainText(self.buffer)
+            self.widget.ensureCursorVisible()
+            self.buffer = ""  # 清空缓存
 
 
 class MainWindow(QMainWindow, UI_MainWindow):
@@ -50,8 +63,9 @@ class MainWindow(QMainWindow, UI_MainWindow):
         self.random_start_index.setText('0')
         self.brute_process.setVisible(False)
         # 重定向控制台输出到TextBrowser
-        sys.stdout = RedirectStream(self.console_browser)
-        sys.stderr = RedirectStream(self.console_browser)
+        self.stream = RedirectStream(self.console_browser)
+        sys.stdout = self.stream
+        sys.stderr = self.stream
 
     def closeEvent(self, event):
         reply = QMessageBox.question(
